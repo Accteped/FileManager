@@ -1,4 +1,5 @@
 from pathlib import Path
+import os 
 import shutil
 
 FILE = {"文本文件": [".txt", ".md"],
@@ -8,6 +9,36 @@ FILE = {"文本文件": [".txt", ".md"],
          "压缩文件": [".zip", ".rar", ".7z"],
          "代码文件": [".py", ".js", ".html", ".css", ".c", ".cpp", ".php"]}
 
+history = []
+
+def Unique_File(file, destination):#防止重复文件覆盖
+
+    num = 1#不一样就往文件名后加（1）（2）
+
+    while(1):
+        if (destination / file.stem + f" ({num})" + file.suffix).exists():
+            num += 1 
+        else:
+            return destination / (file.stem + f" ({num})" + file.suffix)
+
+def Cancel_MoveFile():#撤销移动的操作
+    for file, destination, status in reversed(history):
+        if status == 'OK':
+            if destination.exists():
+                destination = Unique_File(file, destination)
+            shutil.move(str(file), str(destination))
+        history.pop()
+
+def MoveFile(file, destination):
+    if destination.exists():  #如果目标文件已经存在了
+        destination = Unique_File(file, destination)
+
+        history.append((destination , file, "OK"))
+        shutil.move(str(file), str(destination))
+    else:
+        shutil.move(str(file), str(destination))
+        history.append((destination , file, "OK"))
+    return
 
 def organize_files(base_dir):
 
@@ -32,30 +63,17 @@ def organize_files(base_dir):
                         #尝试移动文件
                         try:
                             destination = category_dir / file.name #文件移动的目标路径
-
-                            if(category_dir / file.name).exists():  #如果目标文件已经存在了
-                                if(file.stat().st_size == (destination).stat().st_size):#判断两个文件是不是一样的
-                                    print(f"文件已存在且大小相同，跳过移动: {file} -> {destination}")
-                                else:
-                                    num = 1#不一样就往文件名后加（1）（2）
-                                    while(1):
-                                        if (category_dir / file.stem + f"({num})" + file.suffix).exists():
-                                            num += 1
-                                            continue
-                                        else:
-                                            destination = category_dir / (file.stem + f"({num})" + file.suffix)
-                                    print(f"文件已存在但大小不同，移动文件: {file} -> {destination}")
-                                    shutil.move(str(file), str(destination))
-                            else:
-                                shutil.move(str(file), str(destination))
+                            MoveFile(file, destination) #移动文件并记录移动过程
                         except OSError as e:
                             print(f"移动文件失败！ {file} -> {destination}: {e}")
     except OSError as e:
         print("目标文件夹读取失败！", e)
 
 if __name__ == "__main__":
-
-    base_dir = Path('C:/Users/accte/Desktop/CTF')
-    print(f"正在整理文件夹: {base_dir}")
-    organize_files(base_dir)
-    #print(temp)
+    while True:
+        base_dir = Path('C:/Users/accte/Desktop/CTF')
+        print(f"正在整理文件夹: {base_dir}")
+        organize_files(base_dir)
+        os.system("pause") 
+        Cancel_MoveFile()
+        
