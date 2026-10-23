@@ -107,7 +107,7 @@ def organize_files(base_dir):#对文件进行分类
         print("没有需要整理的文件")
         return
     for src, dst, status in moves:
-        print(f"准备移动{src} -> {moves},状态:{status}")
+        print(f"准备移动{src} -> {dst.name}\\{src.name},状态:{status}")
 
     f = input("是否确认移动(Y/N):")
     if f.lower() == 'y':
