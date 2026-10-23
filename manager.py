@@ -29,7 +29,7 @@ def Cancel_MoveFile():#撤销移动的操作
             shutil.move(str(file), str(destination))
         history.pop()
 
-def MoveFile(file, destination):
+def MoveFile(file, destination):#移动文件
     if destination.exists():  #如果目标文件已经存在了
         destination = Unique_File(file, destination)
 
@@ -40,7 +40,7 @@ def MoveFile(file, destination):
         history.append((destination , file, "OK"))
     return
 
-def organize_files(base_dir):
+def organize_files(base_dir):#对文件进行分类
 
     if not base_dir.is_dir():
         print("目标文件夹不存在或者不是文件夹")
