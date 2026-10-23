@@ -43,7 +43,7 @@ class FileLister(QMainWindow):
 
     def choose_folder(self):
         folder = QFileDialog.getExistingDirectory(
-            self, "选择文件夹", "C:/Users/accte"
+            self, "选择文件夹", "C:/Users/accte/Desktop"
         )
         if folder:                                  # 取消时返回 ""
             self.path_input.setText(folder)
@@ -61,13 +61,16 @@ class FileLister(QMainWindow):
 
         self.list_widget.clear()
         try:
-            files = [p for p in folder.iterdir() if p.is_file()]
+            files = manager.Plan_Moves(folder)
+            if files == -1:
+                self.status_label.setText(f"共 0 个文件")
+                return
         except OSError as e:
             QMessageBox.warning(self, "错误", f"读取失败：{e}")
             return
 
-        for f in files:
-            self.list_widget.addItem(f.name)
+        for src, dst, status in files:
+            self.list_widget.addItem(f"准备移动{src.name} --> {dst.name}\\{src.name}||状态:{status}")
 
         self.status_label.setText(f"共 {len(files)} 个文件")
 
