@@ -16,28 +16,38 @@ def Unique_File(file, destination):#防止重复文件覆盖
     num = 1#不一样就往文件名后加（1）（2）
 
     while(1):
-        if (destination / file.stem + f" ({num})" + file.suffix).exists():
+        if (destination / f"{file.name} ({num}){file.suffix}").exists():
             num += 1 
         else:
-            return destination / (file.stem + f" ({num})" + file.suffix)
+            return (destination / f"{file.name} ({num}){file.suffix}")
 
-def Cancel_MoveFile():#撤销移动的操作
+def Cancel_MoveFile(base_dir):#撤销移动的操作
     for file, destination, status in reversed(history):
         if status == 'OK':
-            if destination.exists():
-                destination = Unique_File(file, destination)
-            shutil.move(str(file), str(destination))
-        history.pop()
+            if file.exists():
+                file = Unique_File(destination, file)
+            try:
+                shutil.move(str(destination), str(file))
+            except OSError as e:
+                print(f"还原文件失败！ {destination} -> {file}: {e}")
+    history.clear()
+    for category in FILE:
+        d = base_dir / category
+        if d.is_dir() and not any(d.iterdir()):
+            d.rmdir()
+
 
 def MoveFile(file, destination):#移动文件
-    if destination.exists():  #如果目标文件已经存在了
-        destination = Unique_File(file, destination)
-
-        history.append((destination , file, "OK"))
-        shutil.move(str(file), str(destination))
-    else:
-        shutil.move(str(file), str(destination))
-        history.append((destination , file, "OK"))
+    try:
+        if destination.exists():  #如果目标文件已经存在了
+            destination = Unique_File(file, destination)
+            shutil.move(str(file), str(destination))
+        else:
+            shutil.move(str(file), str(destination))
+        history.append(( file, destination, "OK"))
+    except OSError as e:
+        history.append(( file, destination, "OK"))
+        raise
     return
 
 def organize_files(base_dir):#对文件进行分类
@@ -45,7 +55,6 @@ def organize_files(base_dir):#对文件进行分类
     if not base_dir.is_dir():
         print("目标文件夹不存在或者不是文件夹")
         return
-    
     try:
         for file in base_dir.iterdir():
             if file.is_file():
@@ -71,9 +80,8 @@ def organize_files(base_dir):#对文件进行分类
 
 if __name__ == "__main__":
     while True:
-        base_dir = Path('C:/Users/accte/Desktop/CTF')
+        base_dir = Path('C:/Users/accte/Desktop/test')
         print(f"正在整理文件夹: {base_dir}")
         organize_files(base_dir)
-        os.system("pause") 
-        Cancel_MoveFile()
+        Cancel_MoveFile(base_dir)
         
