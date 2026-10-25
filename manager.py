@@ -24,10 +24,11 @@ def Unique_File(file, destination):#防止重复文件覆盖
         else:
             return (destination / f"{file.stem} ({num}){file.suffix}")
  
-def Cancel_MoveFile(base_dir):#撤销移动的操作
+def Cancel_MoveFile(base_dir, on_prgress = None):#撤销移动的操作
     error_save = {"成功": 0,
                   "失败": []}
-    for destination, file, status in reversed(history): #把目标位置和原文件反过来，从而进行回溯操作
+    total = len(history)
+    for index,(destination, file, status) in enumerate(reversed(history), total): #把目标位置和原文件反过来，从而进行回溯操作
         if status == 'OK' and file.exists():
             bak = destination
             if destination.exists():
@@ -38,6 +39,8 @@ def Cancel_MoveFile(base_dir):#撤销移动的操作
                 error_save["失败"].append(f"还原文件失败！ {file} -> {bak}: {e}")
                 continue
             error_save["成功"] += 1
+        if on_prgress:
+            on_prgress(index, total)
     history.clear()
     for category in FILE:
         try:
