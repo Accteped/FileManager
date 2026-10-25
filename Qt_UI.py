@@ -92,8 +92,8 @@ class FileLister(QMainWindow):
         )
         if folder:                                  # 取消时返回 ""
             self.path_input.setText(folder)
-
-    def list_files(self):  #列出文件的函数
+    #列出文件的函数
+    def list_files(self):  
         manager.history.clear()#把全局变量history清空
         path_text = self.path_input.text().strip()
         if not path_text:
@@ -159,7 +159,7 @@ class FileLister(QMainWindow):
         self.worker.start()
     #恢复文件
     def reverse_move(self):
-        if not manager.history and self.ismove:
+        if not manager.history or self.ismove:
             QMessageBox.warning(self,"提示","请先进行移动操作")
             return
         #先判断有没有历史操作
@@ -184,7 +184,7 @@ class FileLister(QMainWindow):
     def on_progress(self, cur, total):
         self.progress_bar.setMaximum(total)
         self.progress_bar.setValue(cur)
-        self.status_label.setText(f"移动中{cur}/{total}")
+        self.status_label.setText(f"处理中{cur}/{total}")
     #收到移动文件的结束信号
     def move_finished(self,result):
         self.move_btn.setEnabled(True)
