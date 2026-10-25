@@ -69,10 +69,11 @@ def Plan_Moves(base_dir) -> list:#计划移动文件
         return -1
 
     
-def execute_Move(moves) -> dict: #实际操作移动文件
+def execute_Move(moves,on_progress = None) -> dict: #实际操作移动文件
     temp_dict = {"success": 0,
                  "failed": []}
-    for file, destination, status in moves:
+    total = len(moves)
+    for index, (file, destination, status) in enumerate(moves, start=1):
         if status == "OK":
             category_dir = destination  #创建的目标类型文件夹路径
             #尝试创建文件夹
@@ -88,6 +89,8 @@ def execute_Move(moves) -> dict: #实际操作移动文件
                 temp_dict["failed"].append((file, destination))
         else:
             temp_dict["failed"].append((file, destination))
+        if on_progress:
+            on_progress(index,total)
     return temp_dict
 
 def MoveFile(file, destination):#移动文件
