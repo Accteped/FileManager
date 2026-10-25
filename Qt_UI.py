@@ -1,12 +1,42 @@
-import sys
+import sys,time
 from pathlib import Path
 import manager
 
+from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLineEdit, QListWidget, QLabel, QFileDialog, QMessageBox
+    QPushButton, QLineEdit, QListWidget, QLabel, QFileDialog, QMessageBox,QProgressBar
 )
 
+class MoveWorker(QThread):
+    result_ready = Signal(dict)
+    progress = Signal(int, int)
+
+
+    def __init__(self, moves):
+        super().__init__()
+        self.moves = moves
+
+    def run(self):
+        result = manager.execute_Move(
+            self.moves,
+            on_progress=lambda cur,total: self.progress.emit(cur,total))
+        self.result_ready.emit(result)
+
+class ReverseMoveWorker(QThread):
+    result_ready = Signal(dict)
+    progress = Signal(int, int)
+
+
+    def __init__(self, base_dir):
+        super().__init__()
+        self.base_dir = base_dir
+
+    def run(self):
+        result = manager.Cancel_MoveFile(
+            self.base_dir,
+            on_progress = lambda cur,total: self.progress.emit(cur,total))
+        self.result_ready.emit(result)
 
 class FileLister(QMainWindow):
     def __init__(self):
@@ -18,6 +48,7 @@ class FileLister(QMainWindow):
         self.setCentralWidget(central)
         main_layout = QVBoxLayout(central)
         self.current_moves = []
+        self.ismove = False
 
         # ---- 第一行：路径输入框 + 浏览按钮 ----
         row = QHBoxLayout()
@@ -30,17 +61,23 @@ class FileLister(QMainWindow):
         main_layout.addLayout(row)
 
         # ---- 第二行：开始按钮 ----
-        start_btn = QPushButton("列出文件")
-        move_btn = QPushButton("移动文件")
-        reverse_btn = QPushButton("撤销移动操作")
-        start_btn.clicked.connect(self.list_files)
-        move_btn.clicked.connect(self.execute)
-        reverse_btn.clicked.connect(self.reverse_move)
+        self.start_btn = QPushButton("列出文件")
+        self.move_btn = QPushButton("移动文件")
+        self.reverse_btn = QPushButton("撤销移动操作")
+        self.start_btn.clicked.connect(self.list_files)
+        self.move_btn.clicked.connect(self.execute)
+        self.reverse_btn.clicked.connect(self.reverse_move)
         row = QHBoxLayout()
-        row.addWidget(start_btn)
-        row.addWidget(move_btn)
-        row.addWidget(reverse_btn)
+        row.addWidget(self.start_btn)
+        row.addWidget(self.move_btn)
+        row.addWidget(self.reverse_btn)
         main_layout.addLayout(row)
+
+        # ---- 进度条 ----    
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setValue(0)
+        main_layout.addWidget(self.progress_bar)
+    
         # ---- 列表 ----
         self.list_widget = QListWidget()
         main_layout.addWidget(self.list_widget)
@@ -108,12 +145,30 @@ class FileLister(QMainWindow):
                           "确认", f"确定要移动{count}个文件吗",QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No)
         if ans != QMessageBox.StandardButton.Yes:
             return
+        #准备进度条
+        self.progress_bar.setMaximum(len(self.current_moves))
+        self.progress_bar.setValue(0)
+        #禁用按键并更新状态栏
+        self.move_btn.setEnabled(False)
+        self.status_label.setText("正在移动...")
 
-        result = manager.execute_Move(self.current_moves)
+        self.worker = MoveWorker(self.current_moves)
+        self.worker.progress.connect(self.on_progress)
+        self.worker.result_ready.connect(self.move_finished)
+        self.worker.start()
+
+    def on_progress(self, cur, total):
+        self.progress_bar.setMaximum(total)
+        self.progress_bar.setValue(cur)
+        self.status_label.setText(f"移动中{cur}/{total}")
+        
+    def move_finished(self,result):
+        self.move_btn.setEnabled(True)
+        self.ismove = True
         QMessageBox.information(
-            self, "完成",
-            f"成功 {result['success']} 个，失败 {len(result['failed'])} 个"
-        )
+                    self, "完成",
+                    f"成功 {result['success']} 个，失败 {len(result['failed'])} 个"
+                )
         #更新状态栏
         self.status_label.setText(f"共成功移动 {result['success']} 个，失败移动 {len(result['failed'])} 个")
         
@@ -123,9 +178,9 @@ class FileLister(QMainWindow):
             if status == 'OK':
                 self.list_widget.addItem(f"[移动成功]:{src.name} --> {dst.name}\\{src.name}")#列出移动成功的每个文件
         self.current_moves = []
-
+    
     def reverse_move(self):
-        if not manager.history:
+        if not manager.history and self.ismove:
             QMessageBox.warning(self,"提示","请先进行移动操作")
             return
         #先判断有没有历史操作
@@ -134,7 +189,21 @@ class FileLister(QMainWindow):
         if ans != QMessageBox.StandardButton.Yes:
                     return
         path_text = self.path_input.text().strip()
-        result = manager.Cancel_MoveFile(Path(path_text))
+
+        #准备进度条
+        self.progress_bar.setMaximum(len(manager.history))
+        self.progress_bar.setValue(0)
+        #禁用按键并更新状态栏
+        self.reverse_btn.setEnabled(False)
+        self.status_label.setText("正在还原...")
+
+        self.worker = ReverseMoveWorker(Path(path_text))
+        self.worker.progress.connect(self.on_progress)
+        self.worker.result_ready.connect(self.reverse_finished)
+        self.worker.start()
+        
+    def reverse_finished(self,result):
+        self.reverse_btn.isEnabled = True
         #弹窗显示结果
         QMessageBox.information(
                     self, "完成",
@@ -144,11 +213,11 @@ class FileLister(QMainWindow):
         self.list_widget.clear()
         if len(result['失败']):
             for text in result['失败']:
-                self.list_widget.addItem(f"[失败信息]:f{text}")
+                self.list_widget.addItem(f"[失败信息]:{text}")
         #更新状态栏
         self.status_label.setText(f"共成功撤销移动 {result['成功']} 个，失败撤销移动 {len(result['失败'])} 个")
         manager.history.clear()
-
+        self.ismove = False
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
