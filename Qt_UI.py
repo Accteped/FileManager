@@ -17,6 +17,7 @@ class FileLister(QMainWindow):
         central = QWidget()
         self.setCentralWidget(central)
         main_layout = QVBoxLayout(central)
+        self.current_moves = []
 
         # ---- 第一行：路径输入框 + 浏览按钮 ----
         row = QHBoxLayout()
@@ -30,9 +31,16 @@ class FileLister(QMainWindow):
 
         # ---- 第二行：开始按钮 ----
         start_btn = QPushButton("列出文件")
+        move_btn = QPushButton("移动文件")
+        reverse_btn = QPushButton("撤销移动操作")
         start_btn.clicked.connect(self.list_files)
-        main_layout.addWidget(start_btn)
-
+        move_btn.clicked.connect(self.execute)
+        reverse_btn.clicked.connect(self.reverse_move)
+        row = QHBoxLayout()
+        row.addWidget(start_btn)
+        row.addWidget(move_btn)
+        row.addWidget(reverse_btn)
+        main_layout.addLayout(row)
         # ---- 列表 ----
         self.list_widget = QListWidget()
         main_layout.addWidget(self.list_widget)
@@ -41,14 +49,15 @@ class FileLister(QMainWindow):
         self.status_label = QLabel("就绪")
         main_layout.addWidget(self.status_label)
 
-    def choose_folder(self):
+    def choose_folder(self): #选择文件夹的组件
         folder = QFileDialog.getExistingDirectory(
             self, "选择文件夹", "C:/Users/accte/Desktop"
         )
         if folder:                                  # 取消时返回 ""
             self.path_input.setText(folder)
 
-    def list_files(self):
+    def list_files(self):  #列出文件的函数
+        manager.history.clear()#把全局变量history清空
         path_text = self.path_input.text().strip()
         if not path_text:
             QMessageBox.warning(self, "提示", "请先选择文件夹")
@@ -59,20 +68,76 @@ class FileLister(QMainWindow):
             QMessageBox.warning(self, "错误", f"不是有效文件夹：{folder}")
             return
 
-        self.list_widget.clear()
+        self.list_widget.clear()  #清空显示文件的列表
         try:
-            files = manager.Plan_Moves(folder)
+            files = manager.Plan_Moves(folder)#调用计划移动函数
             if files == -1:
-                self.status_label.setText(f"共 0 个文件")
+                QMessageBox.warning(self, "错误", "访问文件夹失败")
+                self.status_label.setText("访问失败")
                 return
+            
+            total = len([p for p in folder.iterdir() if p.is_file()]) #统计文件总数
+            skipped = total - len(files) #统计被跳过的文件
+            if not files and skipped == 0:
+                self.status_label.setText("没有需要整理的文件")
+                return
+            
         except OSError as e:
             QMessageBox.warning(self, "错误", f"读取失败：{e}")
             return
-
+        failed_file = 0#统计无法移动文件
         for src, dst, status in files:
-            self.list_widget.addItem(f"准备移动{src.name} --> {dst.name}\\{src.name}||状态:{status}")
+            if status == 'OK':
+                self.list_widget.addItem(f"[准备移动]:{src.name} --> {dst.name}\\{src.name}")#列出每个文件的移动计划
+            else:
+                failed_file += 1
+        if skipped:
+            self.status_label.setText(f"共 {len(files)} 个将移动，{skipped} 个未匹配规则")
+        elif failed_file:
+            self.status_label.setText(f"共 {len(files)-failed_file} 个将移动，{failed_file} 个失败")
+        else:
+            self.status_label.setText(f"共 {len(files)} 个文件")
+        self.current_moves = files
 
-        self.status_label.setText(f"共 {len(files)} 个文件")
+    def execute(self):
+        if not self.current_moves:
+            QMessageBox.warning(self,"提示","请先预览")
+            return
+        ans = QMessageBox.question(self,
+                          "确认", f"确定要移动{len(self.current_moves)}个文件吗",QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No)
+        if ans != QMessageBox.StandardButton.Yes:
+            return
+
+        result = manager.execute_Move(self.current_moves)
+        QMessageBox.information(
+            self, "完成",
+            f"成功 {result['success']} 个，失败 {len(result['failed'])} 个"
+        )
+        self.status_label.setText(f"共成功移动 {result['success']} 个，失败移动 {len(result['failed'])} 个")
+        self.list_widget.clear()
+        self.current_moves = []
+
+    def reverse_move(self):
+        if not manager.history:
+            QMessageBox.warning(self,"提示","请先进行移动操作")
+            return
+        #先判断有没有历史操作
+        ans = QMessageBox.question(self,
+                                  "确认", f"确定要撤回移动{len(manager.history)}个文件吗",QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No)
+        if ans != QMessageBox.StandardButton.Yes:
+                    return
+        path_text = self.path_input.text().strip()
+        result = manager.Cancel_MoveFile(Path(path_text))
+        QMessageBox.information(
+                    self, "完成",
+                    f"成功 {result['成功']} 个，失败 {len(result['失败'])} 个"
+                )
+        self.list_widget.clear()
+        if len(result['失败']):
+            for text in result['失败']:
+                self.list_widget.addItems(f"[失败信息]:f{text}")
+        self.status_label.setText(f"共成功撤销移动 {result['成功']} 个，失败撤销移动 {len(result['失败'])} 个")
+        manager.history.clear()
 
 
 if __name__ == "__main__":

@@ -25,6 +25,8 @@ def Unique_File(file, destination):#防止重复文件覆盖
             return (destination / f"{file.stem} ({num}){file.suffix}")
  
 def Cancel_MoveFile(base_dir):#撤销移动的操作
+    error_save = {"成功": 0,
+                  "失败": []}
     for destination, file, status in reversed(history): #把目标位置和原文件反过来，从而进行回溯操作
         if status == 'OK' and file.exists():
             bak = destination
@@ -33,14 +35,17 @@ def Cancel_MoveFile(base_dir):#撤销移动的操作
             try:
                 shutil.move(str(file), str(bak))#file存储的是回溯的目标文件
             except OSError as e:
-                print(f"还原文件失败！ {file} -> {bak}: {e}")
+                error_save["失败"].append(f"还原文件失败！ {file} -> {bak}: {e}")
+                continue
+            error_save["成功"] += 1
     history.clear()
     for category in FILE:
         try:
             (base_dir / category).rmdir()
         except OSError as e:
             pass
-
+    if error_save:
+        return error_save
 def Plan_Moves(base_dir) -> list:#计划移动文件
     Plan_File = []                        #file,destination,status
     if base_dir.is_dir():
