@@ -203,22 +203,22 @@ class FileLister(QMainWindow):
                 self.list_widget.addItem(f"[移动成功]:{src.name} --> {dst.name}\\{src.name}")#列出移动成功的每个文件
         self.current_moves = []
     #收到恢复文件的结束信号  
-        def reverse_finished(self,result):
-            self.reverse_btn.isEnabled = True
-            #弹窗显示结果
-            QMessageBox.information(
-                        self, "完成",
-                        f"成功 {result['成功']} 个，失败 {len(result['失败'])} 个"
-                    )
-            #显示失败信息
-            self.list_widget.clear()
-            if len(result['失败']):
-                for text in result['失败']:
-                    self.list_widget.addItem(f"[失败信息]:{text}")
-            #更新状态栏
-            self.status_label.setText(f"共成功撤销移动 {result['成功']} 个，失败撤销移动 {len(result['失败'])} 个")
-            manager.history.clear()
-            self.ismove = False
+    def reverse_finished(self,result):
+        self.reverse_btn.isEnabled = True
+        #弹窗显示结果
+        QMessageBox.information(
+                    self, "完成",
+                    f"成功 {result['成功']} 个，失败 {len(result['失败'])} 个"
+                )
+        #显示失败信息
+        self.list_widget.clear()
+        if len(result['失败']):
+            for text in result['失败']:
+                self.list_widget.addItem(f"[失败信息]:{text}")
+        #更新状态栏
+        self.status_label.setText(f"共成功撤销移动 {result['成功']} 个，失败撤销移动 {len(result['失败'])} 个")
+        manager.history.clear()
+        self.ismove = False
     
 
 if __name__ == "__main__":
