@@ -159,7 +159,7 @@ class FileLister(QMainWindow):
         self.worker.start()
     #恢复文件
     def reverse_move(self):
-        if not manager.history or self.ismove:
+        if not manager.history or not self.ismove:
             QMessageBox.warning(self,"提示","请先进行移动操作")
             return
         #先判断有没有历史操作
