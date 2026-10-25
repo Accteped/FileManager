@@ -103,8 +103,9 @@ class FileLister(QMainWindow):
         if not self.current_moves:
             QMessageBox.warning(self,"提示","请先预览")
             return
+        count = len([m for m in self.current_moves if m[2] == "OK"])
         ans = QMessageBox.question(self,
-                          "确认", f"确定要移动{len([m for m in self.current_moves if m[2] == "OK"])}个文件吗",QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No)
+                          "确认", f"确定要移动{count}个文件吗",QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No)
         if ans != QMessageBox.StandardButton.Yes:
             return
 
