@@ -204,7 +204,7 @@ class FileLister(QMainWindow):
         self.current_moves = []
     #收到恢复文件的结束信号  
     def reverse_finished(self,result):
-        self.reverse_btn.isEnabled = True
+        self.reverse_btn.setEnabled(True)
         #弹窗显示结果
         QMessageBox.information(
                     self, "完成",
