@@ -104,7 +104,7 @@ class FileLister(QMainWindow):
             QMessageBox.warning(self,"提示","请先预览")
             return
         ans = QMessageBox.question(self,
-                          "确认", f"确定要移动{len(self.current_moves)}个文件吗",QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No)
+                          "确认", f"确定要移动{len([m for m in self.current_moves if m[2] == "OK"])}个文件吗",QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No)
         if ans != QMessageBox.StandardButton.Yes:
             return
 
@@ -113,8 +113,14 @@ class FileLister(QMainWindow):
             self, "完成",
             f"成功 {result['success']} 个，失败 {len(result['failed'])} 个"
         )
+        #更新状态栏
         self.status_label.setText(f"共成功移动 {result['success']} 个，失败移动 {len(result['failed'])} 个")
+        
+        #输出移动成功的文件
         self.list_widget.clear()
+        for src, dst, status in self.current_moves:
+            if status == 'OK':
+                self.list_widget.addItem(f"[移动成功]:{src.name} --> {dst.name}\\{src.name}")#列出移动成功的每个文件
         self.current_moves = []
 
     def reverse_move(self):
@@ -128,20 +134,26 @@ class FileLister(QMainWindow):
                     return
         path_text = self.path_input.text().strip()
         result = manager.Cancel_MoveFile(Path(path_text))
+        #弹窗显示结果
         QMessageBox.information(
                     self, "完成",
                     f"成功 {result['成功']} 个，失败 {len(result['失败'])} 个"
                 )
+        #显示失败信息
         self.list_widget.clear()
         if len(result['失败']):
             for text in result['失败']:
-                self.list_widget.addItems(f"[失败信息]:f{text}")
+                self.list_widget.addItem(f"[失败信息]:f{text}")
+        #更新状态栏
         self.status_label.setText(f"共成功撤销移动 {result['成功']} 个，失败撤销移动 {len(result['失败'])} 个")
         manager.history.clear()
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    font = app.font()
+    font.setFamily("Microsoft YaHei")
+    app.setFont(font)
     window = FileLister()
     window.show()
     sys.exit(app.exec())
