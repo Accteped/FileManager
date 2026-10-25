@@ -22,5 +22,5 @@ python Qt_UI.py
 ~~~
 
 ## Released发行版0.0.1
-运行Filemanager.exe即可
-manager.py为依赖文件
+- 运行Filemanager.exe即可
+- manager.py为依赖文件
