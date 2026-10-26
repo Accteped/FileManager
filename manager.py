@@ -30,6 +30,10 @@ def load_json():
             print(f"解读json失败")
             return dict(DEFAULT_RULES)
 
+def save_rules(rules):
+    with open(RULES_FILE, 'w', encoding="UTF-8") as f:
+        json.dump(rules, f, ensure_ascii = False, indent = 2)
+
 FILE = load_json()
 
 history = []
