@@ -1,13 +1,36 @@
 from pathlib import Path
-import os 
+import json
+import sys
 import shutil
 
-FILE = {"文本文件": [".txt", ".md"],
+DEFAULT_RULES = {"文本文件": [".txt", ".md"],
          "图片": [".jpg", ".png"],
          "文档": [".pdf", ".xlsx", ".ppt", ".pptx", ".doc", ".docx"],
          "视频&音频": [".mp4", ".avi", ".mov", ".mp3", ".wav", ".flac"],
          "压缩文件": [".zip", ".rar", ".7z"],
          "代码文件": [".py", ".js", ".html", ".css", ".c", ".cpp", ".php"]}
+
+if getattr(sys,'frozen',False):
+    BASE = Path(sys.executable).parent
+else:
+    BASE = Path(__file__).parent
+
+RULES_FILE = BASE / "rules.json"
+
+def load_json():
+    if not RULES_FILE.exists():
+        with open(RULES_FILE, 'w', encoding="UTF-8") as f:
+            json.dump(DEFAULT_RULES, f, ensure_ascii = False, indent = 2)
+        return dict(DEFAULT_RULES)
+    else:
+        try:
+            with open(RULES_FILE, 'r', encoding="UTF-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError,OSError) as e:
+            print(f"解读json失败")
+            return dict(DEFAULT_RULES)
+
+FILE = load_json()
 
 history = []
 
