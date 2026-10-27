@@ -326,31 +326,38 @@ class RulesEditor(QDialog):
         self.rules[new_name] = []
         print(new_name)
         self.list_widget.addItem(new_name)
+
+        new_item = self.list_widget.item(self.list_widget.count() - 1)
+        self.list_widget.setCurrentItem(new_item)
+        self.on_category_selected(new_item)
     #删除类别名
     def delRules(self):
         item = self.list_widget.currentItem()
-        self.current_item = None
-        self.current_category = None
-        self.UpdateExtlist()
+        
         if not item:
             return
-        print(f"删除{item.text()}")
         self.rules.pop(item.text(), None)
         self.list_widget.takeItem(self.list_widget.row(item))
+        
+        self.current_item = None
+        self.current_category = None
+        self.name_edit.clear()
+        self.ext_edit.clear()
+        self.list_widget.setCurrentItem(None)
     #在切换类别时实时保存规则
     def save_current_to_rules(self):
+        if not self.current_category:
+            return
         name = self.name_edit.text().strip()#获取修改的类型名
         if not name:
             return
-        exts = [line.strip() for line in self.ext_edit.toPlainText().splitlines() if(line.strip() and line.strip()[0] == '.')]#把后缀名按行分割,自动删掉不合法的后缀
+        exts = [line.strip().lower() for line in self.ext_edit.toPlainText().splitlines() if(line.strip() and line.strip()[0] == '.' and line.strip()[1])]#把后缀名按行分割,自动删掉不合法的后缀
         #---- 处理用户修改了类名的情况 ----
         olds = self.current_category
         if olds and olds != name:
             self.rules.pop(olds,None)
         self.rules[name] = exts
-        print(f"name = {name}")
-        print(f"self.rules[{name}] = {exts}")
-
+    #实时更新对应类别的后缀名
     def UpdateExtlist(self):
         item = self.current_item
         if not item:
@@ -359,7 +366,7 @@ class RulesEditor(QDialog):
         name = item.text() # 类别名
         self.current_category = name
         if name not in self.rules:
-            self.name_edit.setText(None)
+            self.name_edit.clear()
             self.ext_edit.setPlaceholderText(".jpg\n.png\n.gif")
             return
         exts = self.rules[name]# 扩展名列表

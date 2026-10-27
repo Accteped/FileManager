@@ -1,5 +1,5 @@
 # 文件分类系统
-## 当前版本：demo0.0.1
+## 当前版本：demo0.0.2
 
 *功能介绍*
 ~~~
@@ -21,6 +21,6 @@ pip install PySide6
 python Qt_UI.py
 ~~~
 
-## Released发行版0.0.1
+## Released发行版0.0.2
 - 运行Filemanager.exe即可
 - manager.py为依赖文件
