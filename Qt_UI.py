@@ -132,7 +132,7 @@ class FileLister(QMainWindow):
         failed_file = 0#统计无法移动文件
         for src, dst, status in files:
             if status == 'OK':
-                self.list_widget.addItem(f"[准备移动]:{src.name} --> {dst.name}\\{src.name}")#列出每个文件的移动计划
+                self.list_widget.addItem(f"[准备移动] : {src.name} --> {dst.name}\\{src.name}")#列出每个文件的移动计划
             else:
                 failed_file += 1
 

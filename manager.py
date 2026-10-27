@@ -71,12 +71,17 @@ def Cancel_MoveFile(base_dir, on_progress = None):#撤销移动的操作
     history.clear()
     for category in FILE:
         try:
-            (base_dir / category).rmdir()
+            Path(base_dir / "========= 整理后的文件夹 =========" / category).rmdir()
         except OSError as e:
             pass
+    try:
+        Path(base_dir / "========= 整理后的文件夹 =========" ).rmdir()
+    except OSError as e:
+        pass
     if error_save:
         return error_save
-def Plan_Moves(base_dir) -> list:#计划移动文件
+#计划移动文件
+def Plan_Moves(base_dir) -> list:
     Plan_File = []                        #file,destination,status
     if base_dir.is_dir():
         try:
@@ -87,7 +92,7 @@ def Plan_Moves(base_dir) -> list:#计划移动文件
 
                     for category, extensions in FILE.items():
                         if file_extension in extensions:
-                            category_dir = base_dir / category  #创建的目标类型文件夹路径
+                            category_dir = Path(base_dir/ "----------------- 整理后的文件夹 -----------------" / category)  #创建的目标类型文件夹路径
                             #记录移动文件
                             destination = category_dir #文件移动的目标目录
                             Plan_File.append((file, destination, "OK")) #移动文件并记录移动过程
@@ -136,31 +141,4 @@ def MoveFile(file, destination):#移动文件
         history.append(( file, destination_file, "NO"))
         raise
     return
-
-def organize_files(base_dir):#对文件进行分类
-    moves = Plan_Moves(base_dir)
-    if moves == -1:
-        return
-    if not moves:
-        print("没有需要整理的文件")
-        return
-    for src, dst, status in moves:
-        print(f"准备移动{src} -> {dst.name}\\{src.name},状态:{status}")
-
-    f = input("是否确认移动(Y/N):")
-    if f.lower() == 'y':
-        STATUS = execute_Move(moves)
-        print(f"成功移动次数:{STATUS['success']}")
-        print(f"失败移动:{STATUS['failed']}")
-
-if __name__ == "__main__":
-    while True:
-        base_dir = Path('C:/Users/accte/Desktop/test')
-        print(f"正在整理文件夹: {base_dir}")
-        organize_files(base_dir)
-        if history:
-            flag = input("是否确认撤回(Y/N):")
-            if flag.lower() == 'y':
-                Cancel_MoveFile(base_dir)
-        input("按任意键继续下一次整理")
         
