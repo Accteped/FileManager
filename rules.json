@@ -1,41 +1,14 @@
 {
-  "文本文件": [
-    ".txt",
-    ".md"
-  ],
-  "图片": [
-    ".jpg",
-    ".png"
-  ],
-  "文档": [
-    ".pdf",
-    ".xlsx",
-    ".ppt",
-    ".pptx",
-    ".doc",
-    ".docx",
-    ".xls"
-  ],
-  "视频&音频": [
-    ".mp4",
-    ".avi",
-    ".mov",
-    ".mp3",
-    ".wav",
-    ".flac"
-  ],
-  "压缩文件": [
-    ".zip",
-    ".rar",
-    ".7z"
-  ],
-  "代码文件": [
-    ".py",
-    ".js",
-    ".html",
-    ".css",
-    ".c",
-    ".cpp",
-    ".php"
-  ]
+  "mode": "date",
+  "type_rules": {
+    "文本文件": [".txt", ".md"],
+    "图片": [".jpg", ".png"],
+    "文档": [".pdf", ".xlsx", ".ppt", ".pptx", ".doc", ".docx"],
+    "视频&音频": [".mp4", ".avi", ".mov", ".mp3", ".wav", ".flac"],
+    "压缩文件": [".zip", ".rar", ".7z"],
+    "代码文件": [".py", ".js", ".html", ".css", ".c", ".cpp", ".php"]
+  },
+  "date_format": "%Y-%m-%d",
+  "size_small": 1024,
+  "size_large": 10485760
 }

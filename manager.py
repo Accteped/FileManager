@@ -2,6 +2,7 @@ from pathlib import Path
 import json
 import sys
 import shutil
+from datetime import datetime
 
 DEFAULT_RULES = {"文本文件": [".txt", ".md"],
          "图片": [".jpg", ".png"],
@@ -31,10 +32,16 @@ def load_json():
             return dict(DEFAULT_RULES)
 
 def save_rules(rules):
-    with open(RULES_FILE, 'w', encoding="UTF-8") as f:
+    with open(
+        RULES_FILE, 'w', encoding="UTF-8") as f:
         json.dump(rules, f, ensure_ascii = False, indent = 2)
 
-FILE = load_json()
+JSON_ALL = load_json()
+FILE = JSON_ALL.get("type_rules", DEFAULT_RULES)
+mode = JSON_ALL.get("mode", "type")
+date = JSON_ALL.get("date_format", "%Y-%m-%d")
+size_small = JSON_ALL.get("size_small", 1024)
+size_large = JSON_ALL.get("size_large", 10485760)
 
 history = []
 
@@ -69,33 +76,52 @@ def Cancel_MoveFile(base_dir, on_progress = None):#撤销移动的操作
         if on_progress:
             on_progress(index, total)
     history.clear()
-    for category in FILE:
+    ROOT = Path(base_dir / "========= 整理后的文件夹 =========")
+    for category in ROOT.iterdir():
         try:
-            Path(base_dir / "========= 整理后的文件夹 =========" / category).rmdir()
+            Path(ROOT / category).rmdir()
         except OSError as e:
             pass
     try:
-        Path(base_dir / "========= 整理后的文件夹 =========" ).rmdir()
+        Path(ROOT).rmdir()
     except OSError as e:
         pass
     if error_save:
         return error_save
+#判断分类模式并返回category
+def Judge_Mode(file):
+    if mode == 'type':
+        file_extension = file.suffix.lower()
+        for category, extensions in FILE.items():
+            if file_extension in extensions:
+                return category
+        return None
+    elif mode == 'date':
+        file_date = datetime.fromtimestamp(file.stat().st_mtime).strftime(date)
+        return file_date
+    else:
+        file_size = file.stat().st_size
+        if file_size < size_small:
+            category = "Small_Size_File"
+        elif file_size > size_large:
+            category = "Large_Size_File"
+        else:
+            category = "Medium_Size_File"
+        return category
 #计划移动文件
 def Plan_Moves(base_dir) -> list:
-    Plan_File = []                        #file,destination,status
+    Plan_File = []                        #file,destination,status  
     if base_dir.is_dir():
         try:
             for file in base_dir.iterdir():
                 if file.is_file():
-
-                    file_extension = file.suffix.lower()
-
-                    for category, extensions in FILE.items():
-                        if file_extension in extensions:
-                            category_dir = Path(base_dir/ "----------------- 整理后的文件夹 -----------------" / category)  #创建的目标类型文件夹路径
-                            #记录移动文件
-                            destination = category_dir #文件移动的目标目录
-                            Plan_File.append((file, destination, "OK")) #移动文件并记录移动过程
+                    category = Path(Judge_Mode(file))
+                    if not category:
+                        continue
+                    category_dir = Path(base_dir/ "========= 整理后的文件夹 =========" / category)  #创建的目标类型文件夹路径
+                    #记录移动文件
+                    destination = category_dir #文件移动的目标目录
+                    Plan_File.append((file, destination, "OK")) #移动文件并记录移动过程
             return Plan_File
         except OSError as e:
             raise
