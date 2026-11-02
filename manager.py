@@ -1,8 +1,8 @@
 from pathlib import Path
-import json
 import sys
 import shutil
 from datetime import datetime
+import config
 
 DEFAULT_RULES = {"文本文件": [".txt", ".md"],
          "图片": [".jpg", ".png"],
@@ -16,32 +16,9 @@ if getattr(sys,'frozen',False):
 else:
     BASE = Path(__file__).parent
 
-RULES_FILE = BASE / "rules.json"
-
-def load_json():
-    if not RULES_FILE.exists():
-        with open(RULES_FILE, 'w', encoding="UTF-8") as f:
-            json.dump(DEFAULT_RULES, f, ensure_ascii = False, indent = 2)
-        return dict(DEFAULT_RULES)
-    else:
-        try:
-            with open(RULES_FILE, 'r', encoding="UTF-8") as f:
-                return json.load(f)
-        except (json.JSONDecodeError,OSError) as e:
-            print(f"解读json失败")
-            return dict(DEFAULT_RULES)
-
-def save_rules(rules):
-    with open(
-        RULES_FILE, 'w', encoding="UTF-8") as f:
-        json.dump(rules, f, ensure_ascii = False, indent = 2)
-
-JSON_ALL = load_json()
-FILE = JSON_ALL.get("type_rules", DEFAULT_RULES)
-mode = JSON_ALL.get("mode", "type")
-date = JSON_ALL.get("date_format", "%Y-%m-%d")
-size_small = JSON_ALL.get("size_small", 1024)
-size_large = JSON_ALL.get("size_large", 10485760)
+data = config.load()
+profile = config.get_profile(data)
+active_profile_name = config.get_active_profile(data)
 
 history = []
 
@@ -90,8 +67,13 @@ def Cancel_MoveFile(base_dir, on_progress = None):#撤销移动的操作
         return error_save
 #判断分类模式并返回category
 def Judge_Mode(file):
+    mode = profile.get("mode", "type")
+    size_small = profile.get("size_small", 1024)
+    size_large = profile.get("size_large", 10485760)
+    date = profile.get("date_format", "%Y-%m-%d")
     if mode == 'type':
         file_extension = file.suffix.lower()
+        FILE = profile.get("type_rules", DEFAULT_RULES)
         for category, extensions in FILE.items():
             if file_extension in extensions:
                 return category
@@ -115,9 +97,10 @@ def Plan_Moves(base_dir) -> list:
         try:
             for file in base_dir.iterdir():
                 if file.is_file():
-                    category = Path(Judge_Mode(file))
-                    if not category:
+                    mode = Judge_Mode(file)
+                    if not mode:
                         continue
+                    category = Path(mode)
                     category_dir = Path(base_dir/ "========= 整理后的文件夹 =========" / category)  #创建的目标类型文件夹路径
                     #记录移动文件
                     destination = category_dir #文件移动的目标目录

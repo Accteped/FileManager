@@ -5,7 +5,8 @@ import manager
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLineEdit, QListWidget, QLabel, QFileDialog, QMessageBox,QProgressBar,QDialog,QFormLayout,QPlainTextEdit
+    QPushButton, QLineEdit, QListWidget, QLabel, QFileDialog, QMessageBox,QProgressBar,QDialog,QFormLayout,QPlainTextEdit,
+    QTabWidget
 )
 
 class MoveWorker(QThread):
@@ -245,50 +246,10 @@ class RulesEditor(QDialog):
         self.result_rules = self.rules
         self.current_item = None
         self.current_category = None
-        # ========== 中间水平分左右 =========
-        middle = QHBoxLayout()
-        # ========== 最外层垂直 ========
         main_layout = QVBoxLayout(self)
-        # ========== 左边 ==========
-        left = QVBoxLayout()
-        left.addWidget(QLabel("类别"))
-        self.list_widget = QListWidget()
-
-        self.list_widget.itemClicked.connect(self.on_category_selected)
-
-        left.addWidget(self.list_widget)
-        # 左边底部的两个按钮
-        left_btns = QHBoxLayout()
-        self.add_btn = QPushButton("新增")
-        self.del_btn = QPushButton("删除")
-
-        self.add_btn.clicked.connect(self.addRules)
-        self.del_btn.clicked.connect(self.delRules)
-
-        left_btns.addWidget(self.add_btn)
-        left_btns.addWidget(self.del_btn)
-        left.addLayout(left_btns)            # 注意：addLayout 不是 addWidget
-
-        # ===========右边============
-        right = QVBoxLayout()
-        # 用 QFormLayout 让"标签 + 输入框"自动成对排列
-        form = QFormLayout()
-        self.name_edit = QLineEdit()
-        form.addRow("类别名称:", self.name_edit)
-        right.addLayout(form)
-
-        right.addWidget(QLabel("扩展名（每行一个）:"))
-        self.ext_edit = QPlainTextEdit()
-        self.ext_edit.setPlaceholderText(".jpg\n.png\n.gif")
-        right.addWidget(self.ext_edit)
-
-        self.name_edit.textChanged.connect(self.on_name_changed)
-        # ---------- 把左右装进中间 ----------
-        middle.addLayout(left, 1)            # 1 = 拉伸系数，占 1 份宽
-        middle.addLayout(right, 2)           # 2 = 占 2 份宽（右边更宽）
-
-        main_layout.addLayout(middle, 1)     # 中间区域占 1 份高（会拉伸）
-
+        # ========== 标签页 =========
+        self.Tabs = QTabWidget()
+        main_layout.addWidget(self.Tabs)
         # ========== 底部按钮行 ==========
         bottom = QHBoxLayout()
         bottom.addStretch()                  # 弹簧：把后面的按钮推到右边
@@ -301,11 +262,59 @@ class RulesEditor(QDialog):
         bottom.addWidget(self.save_btn)
         bottom.addWidget(self.cancel_btn)
         main_layout.addLayout(bottom)
+        
+    def create_new_tab(self, name, rules):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        # ========== 中间水平分左右 =========
+        middle = QHBoxLayout()
+        # ========== 左边 ==========
+        left = QVBoxLayout()
+        left.addWidget(QLabel("类别"))
+        page.list_widget = QListWidget()
+
+        page.list_widget.itemClicked.connect(self.on_category_selected)
+
+        left.addWidget(self.list_widget)
+        # 左边底部的两个按钮
+        left_btns = QHBoxLayout()
+        page.add_btn = QPushButton("新增")
+        page.del_btn = QPushButton("删除")
+
+        page.add_btn.clicked.connect(page.addRules)
+        page.del_btn.clicked.connect(page.delRules)
+
+        left_btns.addWidget(page.add_btn)
+        left_btns.addWidget(page.del_btn)
+        left.addLayout(left_btns)            # 注意：addLayout 不是 addWidget
+
+        # ===========右边============
+        right = QVBoxLayout()
+        # 用 QFormLayout 让"标签 + 输入框"自动成对排列
+        form = QFormLayout()
+        page.name_edit = QLineEdit()
+        form.addRow("类别名称:", page.name_edit)
+        right.addLayout(form)
+
+        right.addWidget(QLabel("扩展名（每行一个）:"))
+        page.ext_edit = QPlainTextEdit()
+        page.ext_edit.setPlaceholderText(".jpg\n.png\n.gif")
+        right.addWidget(page.ext_edit)
+
+        page.name_edit.textChanged.connect(page.on_name_changed)
+        # ---------- 把左右装进中间 ----------
+        middle.addLayout(left, 1)            # 1 = 拉伸系数，占 1 份宽
+        middle.addLayout(right, 2)           # 2 = 占 2 份宽（右边更宽）
+
+        layout.addLayout(middle, 1)     # 中间区域占 1 份高（会拉伸）
 
         # ========== 填数据 ==========
-        for cat in self.rules:
-            self.list_widget.addItem(cat)
-
+        for cat in rules:
+            page.list_widget.addItem(cat)
+        page.profilename = name
+        #page.rules = rules
+        return page
+        
     def on_name_changed(self, text):
         if not self.current_item:
             return
